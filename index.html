@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="en-GB" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logic Circuit Sandbox</title>
+<style>
+:root {
+  --bg: #eef3f7;
+  --paper: #ffffff;
+  --ink: #16243f;
+  --muted: #56647a;
+  --line: #cdd7e3;
+  --dot: rgba(22, 36, 63, 0.14);
+  --navy: #1c2b4a;
+  --teal: #0c7f82;
+  --teal-soft: #dcf1f1;
+  --amber: #b86e00;
+  --amber-soft: #fdf0d9;
+  --lamp: #f2a60f;
+  --red: #b3342b;
+  --red-soft: #f9e3e1;
+  --chip: #e7edf3;
+  --gate-fill: #ffffff;
+  --wire-off: #8e9aac;
+  --on-strong: #ffffff;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1726; --paper: #172236; --ink: #e5ecf5; --muted: #9eadc2; --line: #2c3b55; --dot: rgba(229, 236, 245, 0.12);
+    --navy: #9fb6e0; --teal: #4fc9c9; --teal-soft: #123a3e; --amber: #f0b454; --amber-soft: #3a2b12; --lamp: #ffc23d;
+    --red: #ff8f85; --red-soft: #3b1d1c; --chip: #22314a; --gate-fill: #1d2a42; --wire-off: #5f6d85; --on-strong: #0f1726;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1726; --paper: #172236; --ink: #e5ecf5; --muted: #9eadc2; --line: #2c3b55; --dot: rgba(229, 236, 245, 0.12);
+  --navy: #9fb6e0; --teal: #4fc9c9; --teal-soft: #123a3e; --amber: #f0b454; --amber-soft: #3a2b12; --lamp: #ffc23d;
+  --red: #ff8f85; --red-soft: #3b1d1c; --chip: #22314a; --gate-fill: #1d2a42; --wire-off: #5f6d85; --on-strong: #0f1726;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: var(--font-body); font-size: 16px; line-height: 1.5; color: var(--ink); background: var(--bg); }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 18px 18px 48px; }
+.top { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+h1 { font-size: 1.8rem; margin: 0; color: var(--navy); letter-spacing: -0.01em; }
+h2 { font-size: 1.1rem; margin: 0 0 8px; }
+.panel { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.btn {
+  font: inherit; font-weight: 600; cursor: pointer; border-radius: 8px; padding: 7px 13px;
+  border: 1px solid var(--line); background: var(--chip); color: var(--ink);
+}
+.btn:hover { border-color: var(--teal); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: var(--teal); border-color: var(--teal); color: var(--on-strong); }
+.btn-plain { background: transparent; }
+select, input[type="text"], input[type="number"] {
+  font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px;
+}
+button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible, tr:focus-visible {
+  outline: 3px solid var(--amber); outline-offset: 2px;
+}
+.picker { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+.picker select { min-width: 280px; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 14px; align-items: start; }
+@media (max-width: 980px) { .layout { grid-template-columns: 1fr; } }
+.side { display: grid; gap: 14px; }
+.brief-title { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.done-badge { color: var(--teal); font-weight: 700; font-size: 0.9rem; white-space: nowrap; }
+.target { font-family: var(--font-mono); font-size: 1.15rem; background: var(--chip); border-radius: 8px; padding: 8px 10px; margin: 8px 0; overflow-wrap: anywhere; }
+.english { border-left: 4px solid var(--teal); padding: 4px 0 4px 10px; margin: 8px 0; }
+.rules { font-size: 0.9rem; color: var(--muted); margin: 6px 0; }
+.hint summary { cursor: pointer; color: var(--muted); font-size: 0.92rem; }
+.hint p { margin: 6px 0 0; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+.row label { font-size: 0.92rem; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.feedback { margin-top: 12px; padding: 10px 12px; border-radius: 10px; border-left: 5px solid; }
+.feedback p { margin: 0 0 6px; }
+.feedback p:last-child { margin-bottom: 0; }
+.fb-good { background: var(--teal-soft); border-color: var(--teal); }
+.fb-bad { background: var(--red-soft); border-color: var(--red); }
+.fb-warn { background: var(--amber-soft); border-color: var(--amber); }
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.tool {
+  display: flex; flex-direction: column; align-items: center; gap: 0; padding: 4px 10px 3px;
+  font-size: 0.75rem; font-weight: 700; touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.tool svg { width: 48px; height: 36px; }
+.tool svg path, .tool svg line, .tool svg circle { fill: none; stroke: currentColor; stroke-width: 3; }
+.toolbar .spacer { flex: 1; }
+.count { font-size: 0.92rem; color: var(--muted); }
+.count b { color: var(--ink); font-family: var(--font-mono); }
+.count.over b { color: var(--red); }
+.canvas-wrap { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+#canvas {
+  display: block; width: 100%; height: auto; touch-action: none; user-select: none; -webkit-user-select: none;
+  background-color: var(--paper);
+  background-image: radial-gradient(var(--dot) 1px, transparent 1.2px);
+  background-size: 18px 18px;
+}
+.help { font-size: 0.85rem; color: var(--muted); margin: 8px 2px 0; }
+.body { fill: var(--gate-fill); stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
+.back { fill: none; stroke: var(--ink); stroke-width: 2.5; }
+.stub { stroke: var(--ink); stroke-width: 2.5; }
+.hit { fill: transparent; }
+.gate { cursor: grab; }
+.gate.selected .hit { fill: var(--amber-soft); stroke: var(--amber); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.gate-label { font: 700 11px var(--font-mono); fill: var(--muted); pointer-events: none; }
+.pin-hit { fill: transparent; cursor: crosshair; }
+.pin-dot { fill: var(--ink); pointer-events: none; }
+.pin-dot.open { fill: var(--amber); }
+.pin-hit:hover + .pin-dot, .pin-dot.armed { fill: var(--teal); r: 6px; }
+.wire { fill: none; stroke-width: 3; stroke-linecap: round; pointer-events: none; }
+.wire.on { stroke: var(--teal); stroke-width: 4; }
+.wire.off { stroke: var(--wire-off); }
+.wire.unknown { stroke: var(--amber); stroke-dasharray: 6 5; }
+.wire.selected { stroke: var(--red); stroke-width: 5; stroke-dasharray: none; }
+.wire-hit { fill: none; stroke: transparent; stroke-width: 16; cursor: pointer; }
+.temp-wire { fill: none; stroke: var(--teal); stroke-width: 2.5; stroke-dasharray: 6 5; pointer-events: none; }
+.switch { cursor: pointer; }
+.switch-rect { fill: var(--chip); stroke: var(--ink); stroke-width: 2; }
+.switch.on .switch-rect { fill: var(--teal); }
+.io-name { font: 700 16px var(--font-mono); fill: var(--ink); pointer-events: none; }
+.switch-val { font: 700 16px var(--font-mono); fill: var(--muted); pointer-events: none; }
+.switch.on .io-name, .switch.on .switch-val { fill: var(--on-strong); }
+.lamp { fill: var(--chip); stroke: var(--ink); stroke-width: 2; }
+.lamp.on { fill: var(--lamp); }
+.lamp.unknown { fill: var(--amber-soft); stroke: var(--amber); stroke-dasharray: 4 3; }
+.lamp-val { font: 700 14px var(--font-mono); fill: var(--ink); pointer-events: none; }
+.lamp.on + .lamp-val { fill: #2a1a00; }
+.tt { border-collapse: collapse; width: 100%; font-family: var(--font-mono); font-size: 0.95rem; }
+.tt th, .tt td { text-align: center; padding: 3px 5px; border-bottom: 1px solid var(--line); }
+.tt th { color: var(--navy); }
+.tt .first-out { border-left: 3px solid var(--navy); }
+.tt .tgt { color: var(--muted); }
+.tt tbody tr { cursor: pointer; }
+.tt tbody tr:hover { background: var(--chip); }
+.tt tr.current { background: var(--teal-soft); }
+.tt .ok { color: var(--teal); font-weight: 700; }
+.tt .bad { color: var(--red); font-weight: 700; }
+.tt .unk { color: var(--amber); }
+.table-scroll { overflow-x: auto; }
+.expr { font-family: var(--font-mono); font-size: 1.02rem; margin: 4px 0; overflow-wrap: anywhere; }
+.teacher summary { cursor: pointer; font-weight: 600; }
+.teacher .row { align-items: flex-end; }
+.teacher label { flex-direction: column; align-items: flex-start; }
+.checks { display: flex; gap: 10px; flex-wrap: wrap; }
+.checks label { flex-direction: row; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Logic circuit sandbox</h1>
+    <button id="themeToggle" class="btn btn-plain" type="button"></button>
+  </header>
+
+  <nav class="picker" aria-label="Choose a challenge">
+    <button id="prevBtn" class="btn" type="button" aria-label="Previous challenge">◀</button>
+    <select id="modeSelect" aria-label="Challenge"></select>
+    <button id="nextBtn" class="btn" type="button" aria-label="Next challenge">▶</button>
+  </nav>
+
+  <div class="layout">
+    <main>
+      <section class="panel">
+        <div class="toolbar" id="toolbar">
+          <button class="btn tool" type="button" data-gate="AND" title="Add an AND gate">
+            <svg viewBox="-4 -4 88 68" aria-hidden="true"><path d="M10 0 H40 A30 30 0 0 1 40 60 H10 Z"/><line x1="0" y1="15" x2="10" y2="15"/><line x1="0" y1="45" x2="10" y2="45"/><line x1="70" y1="30" x2="80" y2="30"/></svg>AND
+          </button>
+          <button class="btn tool" type="button" data-gate="OR" title="Add an OR gate">
+            <svg viewBox="-4 -4 88 68" aria-hidden="true"><path d="M8 0 Q28 30 8 60 Q48 60 70 30 Q48 0 8 0 Z"/><line x1="0" y1="15" x2="15" y2="15"/><line x1="0" y1="45" x2="15" y2="45"/><line x1="70" y1="30" x2="80" y2="30"/></svg>OR
+          </button>
+          <button class="btn tool" type="button" data-gate="NOT" title="Add a NOT gate">
+            <svg viewBox="-4 -4 88 68" aria-hidden="true"><path d="M12 8 L12 52 L58 30 Z"/><circle cx="64" cy="30" r="6"/><line x1="0" y1="30" x2="12" y2="30"/><line x1="70" y1="30" x2="80" y2="30"/></svg>NOT
+          </button>
+          <button class="btn tool" type="button" data-gate="XOR" title="Add an XOR gate">
+            <svg viewBox="-4 -4 88 68" aria-hidden="true"><path d="M14 0 Q34 30 14 60 Q54 60 72 30 Q54 0 14 0 Z"/><path d="M4 0 Q24 30 4 60"/><line x1="0" y1="15" x2="11" y2="15"/><line x1="0" y1="45" x2="11" y2="45"/><line x1="72" y1="30" x2="80" y2="30"/></svg>XOR
+          </button>
+          <span class="spacer"></span>
+          <label class="count"><input type="checkbox" id="showLabels" checked> Gate names</label>
+          <span class="count" id="gateCount"></span>
+          <button id="deleteBtn" class="btn" type="button" disabled>Delete</button>
+          <button id="clearBtn" class="btn" type="button">Clear all</button>
+        </div>
+        <div class="canvas-wrap">
+          <svg id="canvas" viewBox="0 0 900 520" role="application" aria-label="Circuit workspace">
+            <g id="layer"></g>
+          </svg>
+        </div>
+        <p class="help">Drag a gate from the toolbar onto the board. Drag from one pin to another to add a wire (or click one pin, then the other). Click a switch to change its input. Select a gate or wire, then press Delete to remove it. Drag a wire's end away from an input pin to move it.</p>
+      </section>
+    </main>
+
+    <aside class="side">
+      <section class="panel" id="briefPanel" aria-live="polite"></section>
+      <section class="panel">
+        <h2>Your circuit as an expression</h2>
+        <div id="exprOut"></div>
+      </section>
+      <section class="panel">
+        <h2>Truth table</h2>
+        <div class="table-scroll"><table class="tt" id="truthTable"></table></div>
+        <p class="help">Select a row to set the switches to those inputs.</p>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const WIDTH = 900;
+  const HEIGHT = 520;
+  const GRID = 10;
+  const ALL_GATES = ['AND', 'OR', 'NOT', 'XOR'];
+  const SYMBOLS = { AND: '∧', OR: '∨', XOR: '⊻' };
+  const PRECEDENCE = { OR: 1, XOR: 2, AND: 3, NOT: 4, ATOM: 5 };
+
+  const CHALLENGES = [
+    {
+      id: 'c1', title: 'Warm-up: AND', inputs: ['A', 'B'], outputs: ['Q'],
+      targets: { Q: 'A ∧ B' }, show: 'expression', maxGates: 1,
+      brief: 'Build a circuit for this expression, then check it.'
+    },
+    {
+      id: 'c2', title: 'Warm-up: NOT and OR', inputs: ['A', 'B'], outputs: ['Q'],
+      targets: { Q: '¬A ∨ B' }, show: 'expression', maxGates: 2,
+      brief: 'The NOT applies only to A.'
+    },
+    {
+      id: 'c3', title: 'Three inputs', inputs: ['A', 'B', 'C'], outputs: ['Q'],
+      targets: { Q: '(A ∧ B) ∨ C' }, show: 'expression', maxGates: 2,
+      brief: 'Build a circuit for this expression.'
+    },
+    {
+      id: 'c4', title: 'Brackets matter', inputs: ['A', 'B', 'C'], outputs: ['Q'],
+      targets: { Q: 'A ∧ ¬(B ∨ C)' }, show: 'expression', maxGates: 3,
+      brief: 'Build a circuit for this expression.',
+      hint: 'Work from the inside of the brackets outwards: first B ∨ C, then NOT, then AND with A.'
+    },
+    {
+      id: 'c5', title: 'Seatbelt warning', inputs: ['A', 'B', 'C'], outputs: ['Q'],
+      targets: { Q: 'A ∧ (¬B ∨ C)' }, show: 'english', maxGates: 3,
+      brief: 'A warning buzzer (Q) sounds when the ignition is on (A) and either the driver\'s seatbelt is not fastened (B) or a door is open (C).',
+      hint: 'Write the expression first. "Not fastened" means ¬B.'
+    },
+    {
+      id: 'c6', title: 'Voting judges', inputs: ['A', 'B', 'C'], outputs: ['Q'],
+      targets: { Q: '(A ∧ B) ∨ (A ∧ C) ∨ (B ∧ C)' }, show: 'table', maxGates: 5,
+      brief: 'Three judges each press 1 to approve. A contestant goes through (Q = 1) when at least two judges approve. The target is shown in the truth table.',
+      hint: 'Find the expression first (a K-map helps). Three AND gates and two OR gates are enough.'
+    },
+    {
+      id: 'c7', title: 'Simplify first', inputs: ['A', 'B', 'C'], outputs: ['Q'],
+      targets: { Q: '(A ∧ B ∧ C) ∨ (A ∧ B ∧ ¬C) ∨ (¬A ∧ B ∧ C)' }, show: 'expression', maxGates: 2,
+      brief: 'Built as written, this needs lots of gates. Simplify it first so it fits the gate limit.',
+      hint: 'A K-map gives (A ∧ B) ∨ (B ∧ C). B is common to both terms, so factorise it out.'
+    },
+    {
+      id: 'c8', title: 'XOR from scratch', inputs: ['A', 'B'], outputs: ['Q'],
+      targets: { Q: 'A ⊻ B' }, show: 'expression', maxGates: 5, allowed: ['AND', 'OR', 'NOT'],
+      brief: 'Build an XOR without using an XOR gate.',
+      hint: 'A ⊻ B is 1 when exactly one input is 1: (A ∧ ¬B) ∨ (¬A ∧ B).'
+    },
+    {
+      id: 'c9', title: 'De Morgan\'s law', inputs: ['A', 'B'], outputs: ['Q'],
+      targets: { Q: '¬(A ∧ B)' }, show: 'expression', maxGates: 3, allowed: ['OR', 'NOT'],
+      brief: 'Build this expression using only OR and NOT gates.',
+      hint: 'De Morgan\'s law: ¬(A ∧ B) is the same as ¬A ∨ ¬B.'
+    },
+    {
+      id: 'c10', title: 'Not every input is needed', inputs: ['A', 'B', 'C', 'D'], outputs: ['Q'],
+      targets: { Q: '(¬B ∧ ¬D) ∨ (B ∧ D)' }, show: 'expression', maxGates: 2,
+      brief: 'Build this in just two gates.',
+      hint: 'Q is 1 when B and D are the same. What gives 1 when two inputs are different?'
+    },
+    {
+      id: 'c11', title: 'Half adder', inputs: ['A', 'B'], outputs: ['S', 'C'],
+      targets: { S: 'A ⊻ B', C: 'A ∧ B' }, show: 'table', maxGates: 2,
+      brief: 'Add two single bits, A and B. S is the sum bit and C is the carry bit. For example, 1 + 1 = 10 in binary, so S = 0 and C = 1.',
+      hint: 'Look at the S column: which gate gives 1 only when the inputs are different?'
+    },
+    {
+      id: 'c12', title: 'Full adder', inputs: ['A', 'B', 'Cin'], outputs: ['S', 'Cout'],
+      targets: { S: 'A ⊻ B ⊻ Cin', Cout: '(A ∧ B) ∨ (Cin ∧ (A ⊻ B))' }, show: 'table', maxGates: 5,
+      brief: 'Add three bits: A, B and a carry in (Cin) from the previous column. S is the sum bit and Cout is the carry out.',
+      hint: 'Use two half adders. The first adds A and B. The second adds that sum to Cin. If either half adder produces a carry, Cout is 1, so join the two carries with an OR gate.'
+    }
+  ];
+
+  const state = {
+    mode: 'free',
+    challenge: null,
+    freeInputs: 2,
+    freeOutputs: 1,
+    inputs: [],
+    outputs: [],
+    comps: [],
+    wires: [],
+    nextId: 1,
+    selected: null,
+    drag: null,
+    pending: null,
+    pointer: { x: 0, y: 0 },
+    showTarget: false,
+    targetTables: null,
+    saved: {},
+    done: loadDone(),
+    feedback: null,
+    briefKey: null
+  };
+
+  const svg = document.getElementById('canvas');
+  const layer = document.getElementById('layer');
+
+  /* ---------- Small helpers ---------- */
+
+  function loadDone() {
+    try {
+      const raw = localStorage.getItem('circuit-sandbox-done');
+      return raw ? JSON.parse(raw) : {};
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function saveDone() {
+    try {
+      localStorage.setItem('circuit-sandbox-done', JSON.stringify(state.done));
+    } catch (err) {
+      /* storage unavailable: progress lasts for this visit only */
+    }
+  }
+
+  function escapeHtml(text) {
+    return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function snap(value) {
+    return Math.round(value / GRID) * GRID;
+  }
+
+  function isGate(comp) {
+    return comp.type === 'AND' || comp.type === 'OR' || comp.type === 'NOT' || comp.type === 'XOR';
+  }
+
+  function findComp(id) {
+    for (let i = 0; i < state.comps.length; i++) {
+      if (state.comps[i].id === id) {
+        return state.comps[i];
+      }
+    }
+    return null;
+  }
+
+  function inputCount(type) {
+    if (type === 'in') { return 0; }
+    if (type === 'NOT' || type === 'out') { return 1; }
+    return 2;
+  }
+
+  function inPinPos(comp, pin) {
+    if (comp.type === 'out') { return { x: comp.x, y: comp.y + 18 }; }
+    if (comp.type === 'NOT') { return { x: comp.x, y: comp.y + 30 }; }
+    return { x: comp.x, y: comp.y + (pin === 0 ? 15 : 45) };
+  }
+
+  function outPinPos(comp) {
+    if (comp.type === 'in') { return { x: comp.x + 76, y: comp.y + 18 }; }
+    return { x: comp.x + 80, y: comp.y + 30 };
+  }
+
+  function wireInto(compId, pin) {
+    for (let i = 0; i < state.wires.length; i++) {
+      if (state.wires[i].to === compId && state.wires[i].pin === pin) {
+        return state.wires[i];
+      }
+    }
+    return null;
+  }
+
+  function allowedGates() {
+    return state.challenge && state.challenge.allowed ? state.challenge.allowed : ALL_GATES;
+  }
+
+  function gateTotal() {
+    return state.comps.filter(isGate).length;
+  }
+
+  function svgPoint(event) {
+    const pt = svg.createSVGPoint();
+    pt.x = event.clientX;
+    pt.y = event.clientY;
+    const local = pt.matrixTransform(svg.getScreenCTM().inverse());
+    return { x: local.x, y: local.y };
+  }
+
+  /* ---------- Expression parser (for targets and teacher challenges) ---------- */
+
+  function findName(word, names) {
+    for (let i = 0; i < names.length; i++) {
+      if (names[i].toUpperCase() === word.toUpperCase()) {
+        return names[i];
+      }
+    }
+    return null;
+  }
+
+  function tokenise(text, names) {
+    const tokens = [];
+    let i = 0;
+    while (i < text.length) {
+      const ch = text.charAt(i);
+      if (/\s/.test(ch)) { i++; continue; }
+      if (ch === '(') { tokens.push({ type: 'lp', text: ch }); i++; continue; }
+      if (ch === ')') { tokens.push({ type: 'rp', text: ch }); i++; continue; }
+      if ('¬!~'.indexOf(ch) !== -1) { tokens.push({ type: 'not', text: ch }); i++; continue; }
+      if ('∧&.*·'.indexOf(ch) !== -1) { tokens.push({ type: 'and', text: ch }); i++; continue; }
+      if ('∨|+'.indexOf(ch) !== -1) { tokens.push({ type: 'or', text: ch }); i++; continue; }
+      if ('⊻^⊕'.indexOf(ch) !== -1) { tokens.push({ type: 'xor', text: ch }); i++; continue; }
+      if (/[A-Za-z]/.test(ch)) {
+        let word = '';
+        while (i < text.length && /[A-Za-z]/.test(text.charAt(i))) {
+          word += text.charAt(i);
+          i++;
+        }
+        const upper = word.toUpperCase();
+        if (upper === 'AND' || upper === 'OR' || upper === 'NOT' || upper === 'XOR') {
+          tokens.push({ type: upper.toLowerCase(), text: word });
+          continue;
+        }
+        const whole = findName(word, names);
+        if (whole !== null) {
+          tokens.push({ type: 'var', name: whole, text: word });
+          continue;
+        }
+        for (let k = 0; k < word.length; k++) {
+          const single = findName(word.charAt(k), names);
+          if (single === null) {
+            throw new Error('"' + word + '" isn\'t one of the inputs (' + names.join(', ') + ').');
+          }
+          tokens.push({ type: 'var', name: single, text: word.charAt(k) });
+        }
+        continue;
+      }
+      throw new Error('The symbol "' + ch + '" isn\'t recognised.');
+    }
+    return tokens;
+  }
+
+  function parseExpression(text, names) {
+    const tokens = tokenise(text, names);
+    if (tokens.length === 0) {
+      throw new Error('Type an expression first.');
+    }
+    let pos = 0;
+
+    function peek() { return tokens[pos]; }
+
+    function startsOperand(t) {
+      return t && (t.type === 'var' || t.type === 'not' || t.type === 'lp');
+    }
+
+    function parseOr() {
+      let left = parseXor();
+      while (peek() && peek().type === 'or') {
+        pos++;
+        left = { type: 'OR', left: left, right: parseXor() };
+      }
+      return left;
+    }
+
+    function parseXor() {
+      let left = parseAnd();
+      while (peek() && peek().type === 'xor') {
+        pos++;
+        left = { type: 'XOR', left: left, right: parseAnd() };
+      }
+      return left;
+    }
+
+    function parseAnd() {
+      let left = parseNot();
+      while (peek() && (peek().type === 'and' || startsOperand(peek()))) {
+        if (peek().type === 'and') { pos++; }
+        left = { type: 'AND', left: left, right: parseNot() };
+      }
+      return left;
+    }
+
+    function parseNot() {
+      if (peek() && peek().type === 'not') {
+        pos++;
+        return { type: 'NOT', expr: parseNot() };
+      }
+      return parseAtom();
+    }
+
+    function parseAtom() {
+      const t = peek();
+      if (!t) { throw new Error('The expression stops too soon.'); }
+      if (t.type === 'var') { pos++; return { type: 'VAR', name: t.name }; }
+      if (t.type === 'lp') {
+        pos++;
+        const inner = parseOr();
+        if (!peek() || peek().type !== 'rp') { throw new Error('A bracket has been opened but not closed.'); }
+        pos++;
+        return inner;
+      }
+      throw new Error('"' + t.text + '" is in an unexpected place.');
+    }
+
+    const tree = parseOr();
+    if (pos < tokens.length) {
+      throw new Error('"' + tokens[pos].text + '" is in an unexpected place.');
+    }
+    return tree;
+  }
+
+  function evalTree(node, env) {
+    if (node.type === 'VAR') { return env[node.name]; }
+    if (node.type === 'NOT') { return 1 - evalTree(node.expr, env); }
+    const a = evalTree(node.left, env);
+    const b = evalTree(node.right, env);
+    if (node.type === 'AND') { return a & b; }
+    if (node.type === 'OR') { return a | b; }
+    return a ^ b;
+  }
+
+  function treeText(node) {
+    if (node.type === 'VAR') { return { text: node.name, prec: PRECEDENCE.ATOM }; }
+    if (node.type === 'NOT') {
+      const inner = treeText(node.expr);
+      return { text: '¬' + (inner.prec < PRECEDENCE.NOT ? '(' + inner.text + ')' : inner.text), prec: PRECEDENCE.NOT };
+    }
+    const prec = PRECEDENCE[node.type];
+    const sides = [treeText(node.left), treeText(node.right)].map(function (part) {
+      return part.prec < prec ? '(' + part.text + ')' : part.text;
+    });
+    return { text: sides[0] + ' ' + SYMBOLS[node.type] + ' ' + sides[1], prec: prec };
+  }
+
+  function namesUsed(node, found) {
+    if (node.type === 'VAR') { found[node.name] = true; }
+    else if (node.type === 'NOT') { namesUsed(node.expr, found); }
+    else { namesUsed(node.left, found); namesUsed(node.right, found); }
+    return found;
+  }
+
+  function envForRow(m, names) {
+    const env = {};
+    for (let i = 0; i < names.length; i++) {
+      env[names[i]] = (m >> (names.length - 1 - i)) & 1;
+    }
+    return env;
+  }
+
+  function buildTargetTables(challenge) {
+    const tables = {};
+    challenge.outputs.forEach(function (out) {
+      const tree = parseExpression(challenge.targets[out], challenge.inputs);
+      const column = [];
+      for (let m = 0; m < (1 << challenge.inputs.length); m++) {
+        column.push(evalTree(tree, envForRow(m, challenge.inputs)));
+      }
+      tables[out] = column;
+    });
+    return tables;
+  }
+
+  /* ---------- Circuit simulation ---------- */
+
+  // inputValues maps input component ids to 0/1. Unconnected pins give null.
+  function simulate(inputValues) {
+    const values = {};
+    const visiting = {};
+    let loop = false;
+
+    function valueOf(id) {
+      if (Object.prototype.hasOwnProperty.call(values, id)) { return values[id]; }
+      if (visiting[id]) { loop = true; return null; }
+      const comp = findComp(id);
+      if (!comp) { return null; }
+      visiting[id] = true;
+      let result = null;
+      if (comp.type === 'in') {
+        result = inputValues[id];
+      } else {
+        const ins = [];
+        let missing = false;
+        for (let p = 0; p < inputCount(comp.type); p++) {
+          const w = wireInto(id, p);
+          const v = w ? valueOf(w.from) : null;
+          if (v === null) { missing = true; }
+          ins.push(v);
+        }
+        if (!missing) {
+          if (comp.type === 'out') { result = ins[0]; }
+          else if (comp.type === 'NOT') { result = 1 - ins[0]; }
+          else if (comp.type === 'AND') { result = ins[0] & ins[1]; }
+          else if (comp.type === 'OR') { result = ins[0] | ins[1]; }
+          else { result = ins[0] ^ ins[1]; }
+        }
+      }
+      visiting[id] = false;
+      values[id] = result;
+      return result;
+    }
+
+    state.comps.forEach(function (c) { valueOf(c.id); });
+    return { values: values, loop: loop };
+  }
+
+  function liveInputs() {
+    const values = {};
+    state.comps.forEach(function (c) {
+      if (c.type === 'in') { values[c.id] = c.value; }
+    });
+    return values;
+  }
+
+  function rowInputs(m) {
+    const values = {};
+    state.inputs.forEach(function (name, i) {
+      values['in:' + name] = (m >> (state.inputs.length - 1 - i)) & 1;
+    });
+    return values;
+  }
+
+  function expressionFor(id, visiting) {
+    const comp = findComp(id);
+    if (!comp) { return { text: '?', prec: PRECEDENCE.ATOM }; }
+    if (visiting[id]) { return { text: '(loop)', prec: PRECEDENCE.ATOM }; }
+    if (comp.type === 'in') { return { text: comp.name, prec: PRECEDENCE.ATOM }; }
+    visiting[id] = true;
+    const parts = [];
+    for (let p = 0; p < inputCount(comp.type); p++) {
+      const w = wireInto(id, p);
+      parts.push(w ? expressionFor(w.from, visiting) : { text: '?', prec: PRECEDENCE.ATOM });
+    }
+    visiting[id] = false;
+    if (comp.type === 'out') { return parts[0]; }
+    if (comp.type === 'NOT') {
+      const inner = parts[0].prec < PRECEDENCE.NOT ? '(' + parts[0].text + ')' : parts[0].text;
+      return { text: '¬' + inner, prec: PRECEDENCE.NOT };
+    }
+    const prec = PRECEDENCE[comp.type];
+    const sides = parts.map(function (part) {
+      return part.prec < prec ? '(' + part.text + ')' : part.text;
+    });
+    return { text: sides[0] + ' ' + SYMBOLS[comp.type] + ' ' + sides[1], prec: prec };
+  }
+
+  /* ---------- Building and editing ---------- */
+
+  function layoutIO() {
+    const oldValues = {};
+    state.comps.forEach(function (c) {
+      if (c.type === 'in') { oldValues[c.id] = c.value; }
+    });
+    const gates = state.comps.filter(isGate);
+    const io = [];
+    function place(names, type, x) {
+      const spacing = Math.min(110, (HEIGHT - 60) / Math.max(names.length, 1));
+      const start = HEIGHT / 2 - (spacing * (names.length - 1)) / 2 - 18;
+      names.forEach(function (name, i) {
+        const id = (type === 'in' ? 'in:' : 'out:') + name;
+        const comp = { id: id, type: type, name: name, x: x, y: Math.round(start + i * spacing) };
+        if (type === 'in') { comp.value = oldValues[id] || 0; }
+        io.push(comp);
+      });
+    }
+    place(state.inputs, 'in', 16);
+    place(state.outputs, 'out', WIDTH - 120);
+    state.comps = io.concat(gates);
+    state.wires = state.wires.filter(function (w) {
+      return findComp(w.from) && findComp(w.to);
+    });
+  }
+
+  function overlaps(x, y) {
+    return state.comps.some(function (c) {
+      return isGate(c) && Math.abs(c.x - x) < 90 && Math.abs(c.y - y) < 70;
+    });
+  }
+
+  function freeSpot() {
+    for (let y = 40; y <= HEIGHT - 80; y += 80) {
+      for (let x = 180; x <= WIDTH - 260; x += 100) {
+        if (!overlaps(x, y)) { return { x: x, y: y }; }
+      }
+    }
+    return { x: snap(WIDTH / 2 - 40), y: snap(HEIGHT / 2 - 30) };
+  }
+
+  function addGate(type, x, y) {
+    const comp = {
+      id: 'g' + state.nextId++, type: type,
+      x: clamp(snap(x), 90, WIDTH - 210), y: clamp(snap(y), 10, HEIGHT - 70)
+    };
+    state.comps.push(comp);
+    state.selected = { kind: 'comp', id: comp.id };
+    circuitChanged();
+    return comp;
+  }
+
+  function connect(a, b) {
+    const source = a.kind === 'out' ? a : b;
+    const target = a.kind === 'in' ? a : b;
+    state.wires = state.wires.filter(function (w) {
+      return !(w.to === target.comp && w.pin === target.pin);
+    });
+    state.wires.push({ id: 'w' + state.nextId++, from: source.comp, to: target.comp, pin: target.pin });
+    circuitChanged();
+  }
+
+  function deleteSelected() {
+    const sel = state.selected;
+    if (!sel) { return; }
+    if (sel.kind === 'wire') {
+      state.wires = state.wires.filter(function (w) { return w.id !== sel.id; });
+    } else {
+      const comp = findComp(sel.id);
+      if (!comp || !isGate(comp)) { return; }
+      state.comps = state.comps.filter(function (c) { return c.id !== sel.id; });
+      state.wires = state.wires.filter(function (w) { return w.from !== sel.id && w.to !== sel.id; });
+    }
+    state.selected = null;
+    circuitChanged();
+  }
+
+  function clearCircuit() {
+    state.comps = state.comps.filter(function (c) { return !isGate(c); });
+    state.wires = [];
+    state.selected = null;
+    state.pending = null;
+    circuitChanged();
+  }
+
+  function circuitChanged() {
+    state.feedback = null;
+    updateAll();
+  }
+
+  /* ---------- Drawing the circuit ---------- */
+
+  function wirePath(p1, p2) {
+    const dx = Math.max(30, Math.abs(p2.x - p1.x) / 2);
+    return 'M' + p1.x + ' ' + p1.y + ' C' + (p1.x + dx) + ' ' + p1.y + ' ' + (p2.x - dx) + ' ' + p2.y + ' ' + p2.x + ' ' + p2.y;
+  }
+
+  function pinSvg(kind, compId, pin, cx, cy, open, armed) {
+    return '<circle class="pin-hit" cx="' + cx + '" cy="' + cy + '" r="12" data-kind="' + kind + '" data-comp="' + compId + '" data-pin="' + pin + '"></circle>' +
+      '<circle class="pin-dot' + (open ? ' open' : '') + (armed ? ' armed' : '') + '" cx="' + cx + '" cy="' + cy + '" r="' + (open ? 4.5 : 3.5) + '"></circle>';
+  }
+
+  function isArmed(kind, compId, pin) {
+    const start = state.pending || (state.drag && state.drag.type === 'wire' ? state.drag.from : null);
+    return start !== null && start.kind === kind && start.comp === compId && start.pin === pin;
+  }
+
+  function gateShape(type) {
+    if (type === 'AND') {
+      return '<path class="body" d="M10 0 H40 A30 30 0 0 1 40 60 H10 Z"></path>' +
+        '<line class="stub" x1="0" y1="15" x2="10" y2="15"></line><line class="stub" x1="0" y1="45" x2="10" y2="45"></line>' +
+        '<line class="stub" x1="70" y1="30" x2="80" y2="30"></line>';
+    }
+    if (type === 'OR') {
+      return '<path class="body" d="M8 0 Q28 30 8 60 Q48 60 70 30 Q48 0 8 0 Z"></path>' +
+        '<line class="stub" x1="0" y1="15" x2="15" y2="15"></line><line class="stub" x1="0" y1="45" x2="15" y2="45"></line>' +
+        '<line class="stub" x1="70" y1="30" x2="80" y2="30"></line>';
+    }
+    if (type === 'XOR') {
+      return '<path class="body" d="M14 0 Q34 30 14 60 Q54 60 72 30 Q54 0 14 0 Z"></path>' +
+        '<path class="back" d="M4 0 Q24 30 4 60"></path>' +
+        '<line class="stub" x1="0" y1="15" x2="11" y2="15"></line><line class="stub" x1="0" y1="45" x2="11" y2="45"></line>' +
+        '<line class="stub" x1="72" y1="30" x2="80" y2="30"></line>';
+    }
+    return '<path class="body" d="M12 8 L12 52 L58 30 Z"></path>' +
+      '<circle class="body" cx="64" cy="30" r="6"></circle>' +
+      '<line class="stub" x1="0" y1="30" x2="12" y2="30"></line><line class="stub" x1="70" y1="30" x2="80" y2="30"></line>';
+  }
+
+  function labelX(type) {
+    if (type === 'NOT') { return 28; }
+    if (type === 'AND') { return 38; }
+    return 40;
+  }
+
+  function renderCircuit(sim) {
+    const values = sim.values;
+    const showLabels = document.getElementById('showLabels').checked;
+    let html = '';
+
+    state.wires.forEach(function (w) {
+      const from = findComp(w.from);
+      const to = findComp(w.to);
+      const d = wirePath(outPinPos(from), inPinPos(to, w.pin));
+      const v = values[w.from];
+      const selected = state.selected && state.selected.kind === 'wire' && state.selected.id === w.id;
+      const cls = selected ? 'selected' : (v === 1 ? 'on' : (v === 0 ? 'off' : 'unknown'));
+      html += '<path class="wire ' + cls + '" d="' + d + '"></path>' +
+        '<path class="wire-hit" data-wire="' + w.id + '" d="' + d + '"><title>Wire (select, then press Delete to remove)</title></path>';
+    });
+
+    state.comps.forEach(function (c) {
+      const t = 'translate(' + c.x + ',' + c.y + ')';
+      if (c.type === 'in') {
+        html += '<g class="switch' + (c.value ? ' on' : '') + '" transform="' + t + '" data-toggle="' + c.id + '">' +
+          '<rect class="switch-rect" x="0" y="0" width="66" height="36" rx="9"></rect>' +
+          '<text class="io-name" x="10" y="18" dominant-baseline="central">' + escapeHtml(c.name) + '</text>' +
+          '<text class="switch-val" x="56" y="18" text-anchor="end" dominant-baseline="central">' + c.value + '</text>' +
+          '<line class="stub" x1="66" y1="18" x2="76" y2="18"></line>' +
+          pinSvg('out', c.id, 0, 76, 18, false, isArmed('out', c.id, 0)) +
+          '<title>Input ' + escapeHtml(c.name) + ': select to switch between 0 and 1</title></g>';
+      } else if (c.type === 'out') {
+        const v = values[c.id];
+        const lampCls = v === 1 ? ' on' : (v === null ? ' unknown' : '');
+        html += '<g transform="' + t + '">' +
+          '<line class="stub" x1="0" y1="18" x2="12" y2="18"></line>' +
+          '<circle class="lamp' + lampCls + '" cx="30" cy="18" r="18"></circle>' +
+          '<text class="lamp-val" x="30" y="18" text-anchor="middle" dominant-baseline="central">' + (v === null ? '?' : v) + '</text>' +
+          '<text class="io-name" x="56" y="18" dominant-baseline="central">' + escapeHtml(c.name) + '</text>' +
+          pinSvg('in', c.id, 0, 0, 18, !wireInto(c.id, 0), isArmed('in', c.id, 0)) + '</g>';
+      } else {
+        const selected = state.selected && state.selected.kind === 'comp' && state.selected.id === c.id;
+        html += '<g class="gate' + (selected ? ' selected' : '') + '" transform="' + t + '" data-gate-id="' + c.id + '">' +
+          '<rect class="hit" x="-6" y="-8" width="92" height="76" rx="10"></rect>' + gateShape(c.type);
+        if (showLabels) {
+          html += '<text class="gate-label" x="' + labelX(c.type) + '" y="30" text-anchor="middle" dominant-baseline="central">' + c.type + '</text>';
+        }
+        for (let p = 0; p < inputCount(c.type); p++) {
+          const pos = inPinPos(c, p);
+          html += pinSvg('in', c.id, p, pos.x - c.x, pos.y - c.y, !wireInto(c.id, p), isArmed('in', c.id, p));
+        }
+        html += pinSvg('out', c.id, 0, 80, 30, false, isArmed('out', c.id, 0)) + '</g>';
+      }
+    });
+
+    const start = state.pending || (state.drag && state.drag.type === 'wire' && state.drag.moved ? state.drag.from : null);
+    if (start) {
+      const comp = findComp(start.comp);
+      if (comp) {
+        const pinPos = start.kind === 'out' ? outPinPos(comp) : inPinPos(comp, start.pin);
+        const d = start.kind === 'out' ? wirePath(pinPos, state.pointer) : wirePath(state.pointer, pinPos);
+        html += '<path class="temp-wire" d="' + d + '"></path>';
+      }
+    }
+    layer.innerHTML = html;
+  }
+
+  /* ---------- Side panels ---------- */
+
+  function renderTable(liveSim) {
+    const table = document.getElementById('truthTable');
+    const n = state.inputs.length;
+    const showTarget = state.targetTables && state.showTarget;
+    let current = 0;
+    state.inputs.forEach(function (name) {
+      current = (current << 1) | findComp('in:' + name).value;
+    });
+
+    let html = '<thead><tr>';
+    state.inputs.forEach(function (name) { html += '<th scope="col">' + escapeHtml(name) + '</th>'; });
+    state.outputs.forEach(function (name, i) {
+      html += '<th scope="col"' + (i === 0 ? ' class="first-out"' : '') + '>' + escapeHtml(name) + '</th>';
+      if (showTarget) { html += '<th scope="col" class="tgt" title="Target output">target</th>'; }
+    });
+    if (showTarget) { html += '<th scope="col"><span class="sr-only">Match</span></th>'; }
+    html += '</tr></thead><tbody>';
+
+    for (let m = 0; m < (1 << n); m++) {
+      const sim = simulate(rowInputs(m));
+      html += '<tr data-row="' + m + '" tabindex="0"' + (m === current ? ' class="current"' : '') + '>';
+      for (let i = 0; i < n; i++) {
+        html += '<td>' + ((m >> (n - 1 - i)) & 1) + '</td>';
+      }
+      let allMatch = true;
+      let anyUnknown = false;
+      state.outputs.forEach(function (name, i) {
+        const v = sim.loop ? null : sim.values['out:' + name];
+        if (v === null) { anyUnknown = true; }
+        html += '<td' + (i === 0 ? ' class="first-out' : ' class="') + (v === null ? ' unk' : '') + '">' + (v === null ? '?' : v) + '</td>';
+        if (showTarget) {
+          const target = state.targetTables[name][m];
+          if (v !== target) { allMatch = false; }
+          html += '<td class="tgt">' + target + '</td>';
+        }
+      });
+      if (showTarget) {
+        if (anyUnknown) {
+          html += '<td class="unk">?</td>';
+        } else {
+          html += allMatch ? '<td class="ok" aria-label="matches">✓</td>' : '<td class="bad" aria-label="does not match">✗</td>';
+        }
+      }
+      html += '</tr>';
+    }
+    html += '</tbody>';
+    table.innerHTML = html;
+  }
+
+  function renderExpressions(liveSim) {
+    const box = document.getElementById('exprOut');
+    if (liveSim.loop) {
+      box.innerHTML = '<p class="rules">Your circuit contains a loop, where a gate\'s output feeds back into itself. None of these challenges need one, so remove the wire that makes the loop.</p>';
+      return;
+    }
+    let html = '';
+    state.outputs.forEach(function (name) {
+      const e = expressionFor('out:' + name, {});
+      html += '<p class="expr">' + escapeHtml(name) + ' = ' + escapeHtml(e.text) + '</p>';
+    });
+    if (html.indexOf('?') !== -1) {
+      html += '<p class="rules">? marks an input pin with no wire yet (shown in amber on the board).</p>';
+    }
+    box.innerHTML = html;
+  }
+
+  function renderCount() {
+    const el = document.getElementById('gateCount');
+    const used = gateTotal();
+    const max = state.challenge ? state.challenge.maxGates : null;
+    el.className = 'count' + (max !== null && max !== undefined && used > max ? ' over' : '');
+    el.innerHTML = 'Gates used: <b>' + used + '</b>' + (max ? ' of ' + max : '');
+    document.getElementById('deleteBtn').disabled = !state.selected;
+  }
+
+  function renderToolbar() {
+    const allowed = allowedGates();
+    const buttons = document.querySelectorAll('[data-gate]');
+    for (let i = 0; i < buttons.length; i++) {
+      const ok = allowed.indexOf(buttons[i].getAttribute('data-gate')) !== -1;
+      buttons[i].disabled = !ok;
+      buttons[i].title = ok ? 'Add ' + buttons[i].getAttribute('data-gate') + ' gate' : 'Not allowed in this challenge';
+    }
+  }
+
+  function targetHtml(ch) {
+    if (ch.show === 'expression') {
+      let html = '';
+      ch.outputs.forEach(function (out) {
+        html += '<div class="target">' + escapeHtml(out) + ' = ' + escapeHtml(ch.targets[out]) + '</div>';
+      });
+      return html;
+    }
+    return '';
+  }
+
+  function renderBrief() {
+    const panel = document.getElementById('briefPanel');
+    const ch = state.challenge;
+    let html = '';
+    if (!ch) {
+      html += '<h2>Free build</h2><p>Build any circuit you like. The expression and truth table update as you work.</p>' +
+        '<div class="row"><label>Inputs <select id="freeInputs">' + optionList([1, 2, 3, 4], state.freeInputs) + '</select></label>' +
+        '<label>Outputs <select id="freeOutputs">' + optionList([1, 2], state.freeOutputs) + '</select></label></div>' +
+        '<details class="teacher" style="margin-top:12px"><summary>Teacher: set a challenge for the class</summary>' +
+        '<div class="row"><label>Expression to build<input type="text" id="customExpr" placeholder="e.g. (A AND NOT B) OR C" autocomplete="off" spellcheck="false"></label></div>' +
+        '<div class="row"><label>Gate limit (optional)<input type="number" id="customMax" min="1" max="30" style="width:6em"></label>' +
+        '<label>Show students<select id="customShow"><option value="expression">the expression</option><option value="table">only the truth table</option></select></label></div>' +
+        '<div class="row checks" id="customGates">' + ALL_GATES.map(function (g) {
+          return '<label><input type="checkbox" value="' + g + '" checked> ' + g + '</label>';
+        }).join('') + '</div>' +
+        '<div class="row"><button class="btn btn-primary" type="button" id="customStart">Start this challenge</button></div>' +
+        '<p class="rules" id="customMsg" aria-live="polite">Use inputs A to D. You can type AND, OR, NOT and XOR.</p></details>';
+    } else {
+      html += '<div class="brief-title"><h2>' + escapeHtml(ch.title) + '</h2>' +
+        (state.done[ch.id] ? '<span class="done-badge">✓ Completed</span>' : '') + '</div>';
+      html += ch.show === 'expression' ? '<p>' + escapeHtml(ch.brief) + '</p>' : '<p class="english">' + escapeHtml(ch.brief) + '</p>';
+      html += targetHtml(ch);
+      const rules = [];
+      if (ch.maxGates) { rules.push('Use at most ' + ch.maxGates + ' gate' + (ch.maxGates === 1 ? '' : 's') + '.'); }
+      if (ch.allowed) { rules.push('Allowed gates: ' + ch.allowed.join(', ') + '.'); }
+      if (rules.length) { html += '<p class="rules">' + rules.join(' ') + '</p>'; }
+      if (ch.hint) { html += '<details class="hint"><summary>Show a hint</summary><p>' + escapeHtml(ch.hint) + '</p></details>'; }
+      html += '<div class="row"><button class="btn btn-primary" type="button" id="checkBtn">Check circuit</button>' +
+        (ch.show !== 'table' ? '<label><input type="checkbox" id="targetToggle"' + (state.showTarget ? ' checked' : '') + '> Show target in table</label>' : '') +
+        '</div>';
+    }
+    if (state.feedback) {
+      html += '<div class="feedback fb-' + state.feedback.kind + '">' + state.feedback.html + '</div>';
+    }
+    panel.innerHTML = html;
+    wireBriefEvents();
+  }
+
+  function optionList(values, selected) {
+    return values.map(function (v) {
+      return '<option value="' + v + '"' + (v === selected ? ' selected' : '') + '>' + v + '</option>';
+    }).join('');
+  }
+
+  function wireBriefEvents() {
+    const freeInputs = document.getElementById('freeInputs');
+    if (freeInputs) {
+      freeInputs.addEventListener('change', function () {
+        state.freeInputs = parseInt(freeInputs.value, 10);
+        state.inputs = ['A', 'B', 'C', 'D'].slice(0, state.freeInputs);
+        layoutIO();
+        circuitChanged();
+      });
+      document.getElementById('freeOutputs').addEventListener('change', function (e) {
+        state.freeOutputs = parseInt(e.target.value, 10);
+        state.outputs = ['Q', 'R'].slice(0, state.freeOutputs);
+        layoutIO();
+        circuitChanged();
+      });
+      document.getElementById('customStart').addEventListener('click', startCustom);
+    }
+    const checkBtn = document.getElementById('checkBtn');
+    if (checkBtn) { checkBtn.addEventListener('click', checkCircuit); }
+    const toggle = document.getElementById('targetToggle');
+    if (toggle) {
+      toggle.addEventListener('change', function () {
+        state.showTarget = toggle.checked;
+        updateAll();
+      });
+    }
+    const nextAfter = document.getElementById('nextAfter');
+    if (nextAfter) { nextAfter.addEventListener('click', function () { stepMode(1); }); }
+  }
+
+  function updateAll() {
+    const sim = simulate(liveInputs());
+    renderCircuit(sim);
+    renderTable(sim);
+    renderExpressions(sim);
+    renderCount();
+    renderToolbar();
+    const briefKey = state.mode + '|' + (state.feedback ? state.feedback.html : '') + '|' + state.showTarget + '|' +
+      (state.challenge ? !!state.done[state.challenge.id] : '') + '|' + state.freeInputs + '|' + state.freeOutputs;
+    if (briefKey !== state.briefKey) {
+      state.briefKey = briefKey;
+      renderBrief();
+    }
+  }
+
+  function updateBoardOnly() {
+    const sim = simulate(liveInputs());
+    renderCircuit(sim);
+  }
+
+  /* ---------- Checking ---------- */
+
+  function describeRow(m) {
+    return state.inputs.map(function (name, i) {
+      return name + ' = ' + ((m >> (state.inputs.length - 1 - i)) & 1);
+    }).join(', ');
+  }
+
+  function checkCircuit() {
+    const ch = state.challenge;
+    if (!ch) { return; }
+    const live = simulate(liveInputs());
+    if (live.loop) {
+      state.feedback = { kind: 'warn', html: '<p>Your circuit contains a loop. Remove the wire that feeds a gate\'s output back into itself.</p>' };
+      updateAll();
+      return;
+    }
+    const disallowed = state.comps.filter(function (c) {
+      return isGate(c) && allowedGates().indexOf(c.type) === -1;
+    });
+    if (disallowed.length) {
+      state.feedback = { kind: 'warn', html: '<p>This challenge doesn\'t allow ' + disallowed[0].type + ' gates. Remove them and try again.</p>' };
+      updateAll();
+      return;
+    }
+    for (let m = 0; m < (1 << state.inputs.length); m++) {
+      const sim = simulate(rowInputs(m));
+      for (let k = 0; k < state.outputs.length; k++) {
+        const name = state.outputs[k];
+        const v = sim.values['out:' + name];
+        if (v === null) {
+          state.feedback = { kind: 'warn', html: '<p>Output ' + escapeHtml(name) + ' isn\'t fully connected yet. Look for amber pins with no wire.</p>' };
+          updateAll();
+          return;
+        }
+      }
+    }
+    for (let m = 0; m < (1 << state.inputs.length); m++) {
+      const sim = simulate(rowInputs(m));
+      for (let k = 0; k < state.outputs.length; k++) {
+        const name = state.outputs[k];
+        const v = sim.values['out:' + name];
+        const target = state.targetTables[name][m];
+        if (v !== target) {
+          state.showTarget = true;
+          state.feedback = {
+            kind: 'bad',
+            html: '<p><strong>Not yet.</strong> When ' + describeRow(m) + ', your ' + escapeHtml(name) + ' is ' + v +
+              ' but it should be ' + target + '.</p><p>The target column is now shown in the truth table so you can find every row that doesn\'t match.</p>'
+          };
+          updateAll();
+          return;
+        }
+      }
+    }
+    const used = gateTotal();
+    if (ch.maxGates && used > ch.maxGates) {
+      state.feedback = {
+        kind: 'warn',
+        html: '<p><strong>Your circuit works,</strong> but it uses ' + used + ' gates and the limit is ' + ch.maxGates + '. Can you simplify it?</p>'
+      };
+      updateAll();
+      return;
+    }
+    let html = '<p><strong>Correct!</strong> Your circuit gives the right output for every row' +
+      (ch.maxGates ? ', using ' + used + ' gate' + (used === 1 ? '' : 's') : '') + '.</p>';
+    if (ch.show !== 'expression') {
+      html += '<p>One possible answer: ' + ch.outputs.map(function (out) {
+        return '<code>' + escapeHtml(out) + ' = ' + escapeHtml(ch.targets[out]) + '</code>';
+      }).join(' and ') + '</p>';
+    }
+    if (ch.id !== 'custom' && modeIndex() < CHALLENGES.length) {
+      html += '<p><button class="btn btn-primary" type="button" id="nextAfter">Next challenge</button></p>';
+    }
+    if (ch.id !== 'custom') {
+      state.done[ch.id] = true;
+      saveDone();
+      fillModeSelect();
+    }
+    state.feedback = { kind: 'good', html: html };
+    updateAll();
+  }
+
+  /* ---------- Modes and challenges ---------- */
+
+  function snapshot() {
+    return {
+      comps: JSON.parse(JSON.stringify(state.comps)),
+      wires: JSON.parse(JSON.stringify(state.wires)),
+      showTarget: state.showTarget
+    };
+  }
+
+  function setMode(mode, customChallenge) {
+    state.saved[state.mode] = snapshot();
+    state.mode = mode;
+    state.selected = null;
+    state.pending = null;
+    state.drag = null;
+    state.feedback = null;
+    if (mode === 'free') {
+      state.challenge = null;
+      state.inputs = ['A', 'B', 'C', 'D'].slice(0, state.freeInputs);
+      state.outputs = ['Q', 'R'].slice(0, state.freeOutputs);
+      state.targetTables = null;
+    } else {
+      state.challenge = customChallenge || CHALLENGES.filter(function (c) { return c.id === mode; })[0];
+      state.inputs = state.challenge.inputs.slice();
+      state.outputs = state.challenge.outputs.slice();
+      state.targetTables = buildTargetTables(state.challenge);
+    }
+    const saved = customChallenge ? null : state.saved[mode];
+    if (saved) {
+      state.comps = saved.comps;
+      state.wires = saved.wires;
+      state.showTarget = saved.showTarget;
+    } else {
+      state.comps = [];
+      state.wires = [];
+      state.showTarget = !!(state.challenge && state.challenge.show === 'table');
+    }
+    layoutIO();
+    document.getElementById('modeSelect').value = mode;
+    state.briefKey = null;
+    updateAll();
+  }
+
+  function fillModeSelect() {
+    const select = document.getElementById('modeSelect');
+    let html = '<option value="free">Free build</option>';
+    CHALLENGES.forEach(function (c, i) {
+      html += '<option value="' + c.id + '">' + (state.done[c.id] ? '✓ ' : '') + 'Challenge ' + (i + 1) + ': ' + escapeHtml(c.title) + '</option>';
+    });
+    if (state.mode === 'custom') {
+      html += '<option value="custom">Teacher challenge</option>';
+    }
+    select.innerHTML = html;
+    select.value = state.mode;
+  }
+
+  function modeIndex() {
+    if (state.mode === 'free' || state.mode === 'custom') { return 0; }
+    for (let i = 0; i < CHALLENGES.length; i++) {
+      if (CHALLENGES[i].id === state.mode) { return i + 1; }
+    }
+    return 0;
+  }
+
+  function stepMode(delta) {
+    const order = ['free'].concat(CHALLENGES.map(function (c) { return c.id; }));
+    const next = clamp(modeIndex() + delta, 0, order.length - 1);
+    if (state.mode === 'custom') { fillModeSelect(); }
+    setMode(order[next]);
+    fillModeSelect();
+  }
+
+  function startCustom() {
+    const msg = document.getElementById('customMsg');
+    const text = document.getElementById('customExpr').value.trim();
+    let tree;
+    try {
+      tree = parseExpression(text, ['A', 'B', 'C', 'D']);
+    } catch (err) {
+      msg.textContent = err.message;
+      return;
+    }
+    const used = namesUsed(tree, {});
+    let highest = 1;
+    ['A', 'B', 'C', 'D'].forEach(function (name, i) {
+      if (used[name]) { highest = Math.max(highest, i); }
+    });
+    const allowed = [];
+    const boxes = document.querySelectorAll('#customGates input');
+    for (let i = 0; i < boxes.length; i++) {
+      if (boxes[i].checked) { allowed.push(boxes[i].value); }
+    }
+    if (allowed.length === 0) {
+      msg.textContent = 'Tick at least one gate type.';
+      return;
+    }
+    const maxValue = parseInt(document.getElementById('customMax').value, 10);
+    const show = document.getElementById('customShow').value;
+    const challenge = {
+      id: 'custom',
+      title: 'Teacher challenge',
+      inputs: ['A', 'B', 'C', 'D'].slice(0, highest + 1),
+      outputs: ['Q'],
+      targets: { Q: treeText(tree).text },
+      show: show,
+      maxGates: isNaN(maxValue) ? null : maxValue,
+      allowed: allowed.length === 4 ? null : allowed,
+      brief: show === 'expression' ? 'Build a circuit for this expression.' : 'Build a circuit that matches the target column in the truth table.'
+    };
+    state.saved.custom = null;
+    state.mode = 'free';
+    setMode('custom', challenge);
+    fillModeSelect();
+  }
+
+  /* ---------- Pointer interaction ---------- */
+
+  function pinInfo(el) {
+    return {
+      kind: el.getAttribute('data-kind'),
+      comp: el.getAttribute('data-comp'),
+      pin: parseInt(el.getAttribute('data-pin'), 10)
+    };
+  }
+
+  function capture(event) {
+    try { svg.setPointerCapture(event.pointerId); } catch (err) { /* not essential */ }
+  }
+
+  function onPointerDown(event) {
+    if (event.button !== undefined && event.button !== 0) { return; }
+    const p = svgPoint(event);
+    state.pointer = p;
+    const target = event.target;
+    const pinEl = target.closest('[data-kind]');
+
+    if (state.pending) {
+      if (pinEl) {
+        const info = pinInfo(pinEl);
+        if (info.kind !== state.pending.kind) {
+          const start = state.pending;
+          state.pending = null;
+          connect(start, info);
+          event.preventDefault();
+          return;
+        }
+      }
+      state.pending = null;
+      updateBoardOnly();
+      if (!pinEl) { return; }
+    }
+
+    if (pinEl) {
+      event.preventDefault();
+      const info = pinInfo(pinEl);
+      const existing = info.kind === 'in' ? wireInto(info.comp, info.pin) : null;
+      state.drag = { type: 'wire', from: info, pick: existing ? existing.id : null, moved: false, sx: p.x, sy: p.y };
+      capture(event);
+      updateBoardOnly();
+      return;
+    }
+
+    const toggleEl = target.closest('[data-toggle]');
+    if (toggleEl) {
+      event.preventDefault();
+      state.drag = { type: 'toggle', id: toggleEl.getAttribute('data-toggle'), moved: false, sx: p.x, sy: p.y };
+      capture(event);
+      return;
+    }
+
+    const gateEl = target.closest('[data-gate-id]');
+    if (gateEl) {
+      event.preventDefault();
+      const comp = findComp(gateEl.getAttribute('data-gate-id'));
+      state.selected = { kind: 'comp', id: comp.id };
+      state.drag = { type: 'move', id: comp.id, dx: p.x - comp.x, dy: p.y - comp.y, moved: false, sx: p.x, sy: p.y };
+      capture(event);
+      updateBoardOnly();
+      renderCount();
+      return;
+    }
+
+    const wireEl = target.closest('[data-wire]');
+    if (wireEl) {
+      state.selected = { kind: 'wire', id: wireEl.getAttribute('data-wire') };
+      updateBoardOnly();
+      renderCount();
+      return;
+    }
+
+    if (state.selected) {
+      state.selected = null;
+      updateBoardOnly();
+      renderCount();
+    }
+  }
+
+  function onPointerMove(event) {
+    if (!state.drag && !state.pending) { return; }
+    const p = svgPoint(event);
+    state.pointer = p;
+    const d = state.drag;
+    if (d) {
+      if (!d.moved && Math.abs(p.x - d.sx) + Math.abs(p.y - d.sy) > 5) {
+        d.moved = true;
+        if (d.type === 'wire' && d.pick) {
+          const picked = state.wires.filter(function (w) { return w.id === d.pick; })[0];
+          state.wires = state.wires.filter(function (w) { return w.id !== d.pick; });
+          d.from = { kind: 'out', comp: picked.from, pin: 0 };
+          d.picked = true;
+        }
+      }
+      if (d.type === 'move' && d.moved) {
+        const comp = findComp(d.id);
+        comp.x = clamp(snap(p.x - d.dx), 90, WIDTH - 210);
+        comp.y = clamp(snap(p.y - d.dy), 10, HEIGHT - 70);
+      }
+      if (d.moved || d.type === 'wire') {
+        updateBoardOnly();
+      }
+    } else {
+      updateBoardOnly();
+    }
+  }
+
+  function onPointerUp(event) {
+    const d = state.drag;
+    if (!d) { return; }
+    state.drag = null;
+    if (d.type === 'wire') {
+      if (!d.moved) {
+        state.pending = d.from;
+        updateBoardOnly();
+        return;
+      }
+      const el = document.elementFromPoint(event.clientX, event.clientY);
+      const pinEl = el ? el.closest('[data-kind]') : null;
+      if (pinEl) {
+        const info = pinInfo(pinEl);
+        if (info.kind !== d.from.kind) {
+          connect(d.from, info);
+          return;
+        }
+      }
+      if (d.picked) {
+        circuitChanged();
+      } else {
+        updateBoardOnly();
+      }
+      return;
+    }
+    if (d.type === 'toggle') {
+      if (!d.moved) {
+        const comp = findComp(d.id);
+        comp.value = comp.value ? 0 : 1;
+        updateAll();
+      }
+      return;
+    }
+    if (d.type === 'move') {
+      if (d.fromPalette && !d.moved) {
+        const comp = findComp(d.id);
+        const spot = freeSpotExcluding(d.id);
+        comp.x = spot.x;
+        comp.y = spot.y;
+      }
+      updateAll();
+    }
+  }
+
+  function freeSpotExcluding(id) {
+    const comp = findComp(id);
+    const others = state.comps;
+    state.comps = others.filter(function (c) { return c.id !== id; });
+    const spot = freeSpot();
+    state.comps = others;
+    return comp ? spot : spot;
+  }
+
+  function onPointerCancel() {
+    state.drag = null;
+    updateAll();
+  }
+
+  function setupToolbar() {
+    const buttons = document.querySelectorAll('[data-gate]');
+    for (let i = 0; i < buttons.length; i++) {
+      (function (button) {
+        const type = button.getAttribute('data-gate');
+        button.addEventListener('pointerdown', function (event) {
+          if (button.disabled || (event.button !== undefined && event.button !== 0)) { return; }
+          event.preventDefault();
+          const p = svgPoint(event);
+          const comp = addGate(type, p.x - 40, p.y - 30);
+          state.drag = { type: 'move', id: comp.id, dx: 40, dy: 30, moved: false, fromPalette: true, sx: p.x, sy: p.y };
+          capture(event);
+        });
+        button.addEventListener('click', function (event) {
+          if (event.detail === 0 && !button.disabled) {
+            const spot = freeSpot();
+            addGate(type, spot.x, spot.y);
+          }
+        });
+      })(buttons[i]);
+    }
+  }
+
+  function setupThemeToggle() {
+    const button = document.getElementById('themeToggle');
+    const root = document.documentElement;
+    function label() {
+      const dark = root.getAttribute('data-theme') === 'dark';
+      button.textContent = dark ? '☀️ Light mode' : '🌙 Dark mode';
+      button.setAttribute('aria-pressed', dark ? 'true' : 'false');
+    }
+    button.addEventListener('click', function () {
+      root.setAttribute('data-theme', root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+      label();
+    });
+    label();
+  }
+
+  function init() {
+    setupThemeToggle();
+    setupToolbar();
+    svg.addEventListener('pointerdown', onPointerDown);
+    svg.addEventListener('pointermove', onPointerMove);
+    svg.addEventListener('pointerup', onPointerUp);
+    svg.addEventListener('pointercancel', onPointerCancel);
+    document.addEventListener('keydown', function (event) {
+      const tag = event.target.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') { return; }
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        if (state.selected) {
+          event.preventDefault();
+          deleteSelected();
+        }
+      } else if (event.key === 'Escape') {
+        state.pending = null;
+        state.selected = null;
+        updateAll();
+      }
+    });
+    document.getElementById('deleteBtn').addEventListener('click', deleteSelected);
+    document.getElementById('clearBtn').addEventListener('click', clearCircuit);
+    document.getElementById('showLabels').addEventListener('change', updateBoardOnly);
+    document.getElementById('modeSelect').addEventListener('change', function (event) {
+      const value = event.target.value;
+      if (value !== 'custom') {
+        setMode(value);
+        fillModeSelect();
+      }
+    });
+    document.getElementById('prevBtn').addEventListener('click', function () { stepMode(-1); });
+    document.getElementById('nextBtn').addEventListener('click', function () { stepMode(1); });
+    document.getElementById('truthTable').addEventListener('click', function (event) {
+      const row = event.target.closest('[data-row]');
+      if (row) { setSwitches(parseInt(row.getAttribute('data-row'), 10)); }
+    });
+    document.getElementById('truthTable').addEventListener('keydown', function (event) {
+      const row = event.target.closest('[data-row]');
+      if (row && (event.key === 'Enter' || event.key === ' ')) {
+        event.preventDefault();
+        setSwitches(parseInt(row.getAttribute('data-row'), 10));
+      }
+    });
+
+    state.inputs = ['A', 'B'];
+    state.outputs = ['Q'];
+    layoutIO();
+    fillModeSelect();
+    setMode(CHALLENGES[0].id);
+    fillModeSelect();
+  }
+
+  function setSwitches(m) {
+    state.inputs.forEach(function (name, i) {
+      findComp('in:' + name).value = (m >> (state.inputs.length - 1 - i)) & 1;
+    });
+    updateAll();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
